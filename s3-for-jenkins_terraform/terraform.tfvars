@@ -1,0 +1,1 @@
+bucket = "s3bucketforamazon2024"  #change bucket name
