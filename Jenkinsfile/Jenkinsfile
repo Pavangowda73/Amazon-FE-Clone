@@ -1,0 +1,80 @@
+pipeline {
+    agent any
+    tools{
+        jdk 'jdk17'
+        nodejs 'node16'
+    }
+    environment{
+        SCANNER_HOME = tool 'sonar-scanner'
+    }
+    stages {
+        stage('Git checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Pavangowda73/Amazon-FE.git'
+            }
+        }
+        stage('sonarqube analysis'){
+            steps{
+                withSonarQubeEnv('sonar-server'){
+                    sh '''
+                      $SCANNER_HOME/bin/sonar-scanner -Dsonar.projectName=amazon \
+                      -Dsonar.projectKey=amazon'''
+                }
+            }
+        }
+         stage('quality gate') {
+            steps {
+               script{
+                   waitForQualityGate abortPipeline: false, credentialsId: 'Sonar-token'
+               }
+            }
+        }
+        stage('install dependencies') {
+            steps {
+                sh 'npm install'
+            }
+        }
+        stage('dependency check owasp') {
+            steps {
+               dependencyCheck additionalArguments: '--scan ./ --disableYarnAudit --disableNodeAudit', odcInstallation: 'DP-Check'
+                dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
+            }
+        }
+        stage('trivy file system scan') {
+            steps {
+                sh 'trivy fs . > trivyfs.txt'
+            }
+        }
+        stage('docker build and tag') {
+            steps {
+                script{
+                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
+                        sh '''
+                          docker build -t amazon .
+                          docker tag amazon pavan73384/amazon:latest
+                          '''
+                    }
+                }
+            }
+        }
+        stage('trivy image scan') {
+            steps {
+                sh 'trivy image pavan73384/amazon:latest > trivyimage.txt'
+            }
+        }
+        stage('docker push') {
+            steps {
+                script{
+                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
+                        sh 'docker push pavan73384/amazon:latest'
+                    }
+                }
+            }
+        }
+        stage('image updater') {
+            steps {
+                build job : 'manifest',wait:true
+            }
+        }
+    }
+}
