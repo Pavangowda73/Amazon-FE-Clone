@@ -1,6 +1,8 @@
-FROM node:16            # select  official nodejs image
+# select  official nodejs image
+FROM node:16            
 
-WORKDIR /app            # make working directory inside container
+# make working directory inside container
+WORKDIR /app           
 
 COPY package*.json ./   # copy all json files to container
 
