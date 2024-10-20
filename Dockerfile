@@ -4,14 +4,20 @@ FROM node:16
 # make working directory inside container
 WORKDIR /app           
 
-COPY package*.json ./   # copy all json files to container
+# copy all json files to container
+COPY package*.json ./   
 
-RUN npm install         # install dependencies
+# install dependencies
+RUN npm install        
 
-COPY . .                # copy all files to container
+# copy all files to container
+COPY . .                
 
-RUN npm run build       # build the react app
+# build the react app
+RUN npm run build      
 
-EXPOSE 3000             # expose the app
+# expose the app
+EXPOSE 3000            
 
-CMD ["npm","start"]     # start the react app when container starts
+# start the react app when container starts
+CMD ["npm","start"]     
