@@ -1,0 +1,40 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Git checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/Pavangowda73/Amazon-FE.git'
+            }
+        }
+         stage('terraform init') {
+            steps {
+                dir('EKS-terraform') {
+                    sh 'terraform init'
+                }
+            }
+        }
+        stage('terraform validate') {
+            steps {
+                dir('EKS-terraform') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+         stage('terraform plan') {
+            steps {
+                dir('EKS-terraform') {
+                    sh 'terraform plan'
+                }
+            }
+        }
+         stage('terraform apply/destroy') {
+            steps {
+                dir('EKS-terraform') {
+                    sh 'terraform ${action} --auto-approve'
+                }
+            }
+        }
+        
+    }
+}
