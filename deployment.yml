@@ -16,7 +16,7 @@ spec:
     spec:
      containers:
      - name: amazon
-       image: update image
+       image: pavan73384/amazon:latest
        ports:
        - containerPort: 3000
 
