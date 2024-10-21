@@ -18,11 +18,12 @@ resource "aws_vpc" "MYVPC"{
 }
 
 resource "aws_subnet" "subnets" {
-    count = 2
-    vpc_id = aws_vpc.MYVPC.id
-    cidr_block = cidrsubnet(aws_vpc.MYVPC.cidr_block,8,count.index)
-    availability_zone = element(["ap-south-1a","ap-south-1b"],count.index)
+    count                   = 2
+    vpc_id                  = aws_vpc.MYVPC.id
+    cidr_block              = cidrsubnet(aws_vpc.MYVPC.cidr_block,8,count.index)
+    availability_zone       = element(["ap-south-1a","ap-south-1b"],count.index)
     map_public_ip_on_launch = true
+
     tags = {
         Name = "MYVPC-${count.index}"
     }
@@ -47,70 +48,76 @@ resource "aws_route_table" "rt"{
 }
 
 resource "aws_route_table_association" "assoc"{
-    count = 2
-    subnet_id = aws_subnet.subnets[count.index].id
+    count          = 2
+    subnet_id      = aws_subnet.subnets[count.index].id
     route_table_id = aws_route_table.rt.id
 }
 
 resource "aws_security_group" "cluster-sg"{
-    name = "cluster-sg"
+    name   = "cluster-sg"
     vpc_id = aws_vpc.MYVPC.id
+
     egress{
-        from_port = 0
-        to_port = 0
-        protocol = "-1"
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
         cidr_blocks = [ "0.0.0.0/0" ]
     }
+
     tags={
         Name = "cluster-sg"
     }
 }
 
 resource "aws_security_group" "node-sg"{
-    name = "node-sg"
+    name   = "node-sg"
     vpc_id = aws_vpc.MYVPC.id
+
     ingress{
-        from_port = 0
-        to_port = 0
-        protocol = "-1"
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
         cidr_blocks = ["0.0.0.0/0"]
     }
+
     egress{
-        from_port = 0
-        to_port = 0
-        protocol = "-1"
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
         cidr_blocks = [ "0.0.0.0/0" ]
     }
+
     tags={
         Name = "node-sg"
     }
 }
 
 resource "aws_eks_cluster" "cluster"{
-    name = "cluster"
+    name     = "cluster"
     role_arn = aws_iam_role.cluster-role.arn 
+
     vpc_config {
-      subnet_ids = aws_subnet.subnets[*].id 
+      subnet_ids         = aws_subnet.subnets[*].id 
       security_group_ids = [aws_security_group.cluster-sg.id]
     }
 }
 
 resource "aws_eks_node_group" "node" {
-  cluster_name = aws_eks_cluster.cluster.name
+  cluster_name    = aws_eks_cluster.cluster.name
   node_group_name = "node"
-  node_role_arn = aws_iam_role.node-role.arn 
-  subnet_ids =  aws_subnet.subnets[*].id 
+  node_role_arn   = aws_iam_role.node-role.arn 
+  subnet_ids      =  aws_subnet.subnets[*].id 
 
   scaling_config {
     desired_size = 2
-    max_size = 2
-    min_size = 2
+    max_size     = 2
+    min_size     = 2
   }
 
   instance_types = ["t2.medium"]
 
   remote_access {
-    ec2_ssh_key = var.ssh
+    ec2_ssh_key               = var.ssh
     source_security_group_ids = [ aws_security_group.node-sg.id ]
   }
 }
@@ -135,7 +142,7 @@ resource "aws_iam_role" "cluster-role"{
 }
 
 resource "aws_iam_role_policy_attachment" "cluster-policy"{
-    role = aws_iam_role.cluster-role.name 
+    role       = aws_iam_role.cluster-role.name 
     policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
@@ -158,16 +165,16 @@ resource "aws_iam_role" "node-role"{
 }
 
 resource "aws_iam_role_policy_attachment" "node-policy"{
-    role = aws_iam_role.node-role.name 
+    role       = aws_iam_role.node-role.name 
     policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
 }
 
 resource "aws_iam_role_policy_attachment" "node-cni-policy"{
-    role = aws_iam_role.node-role.name 
+    role       = aws_iam_role.node-role.name 
     policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
 }
 
 resource "aws_iam_role_policy_attachment" "node-registry-policy"{
-    role = aws_iam_role.node-role.name 
+    role       = aws_iam_role.node-role.name 
     policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
